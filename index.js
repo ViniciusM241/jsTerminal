@@ -16,14 +16,23 @@ const library = {
         {name: 'root', pwd: '02', ip: '127.0.0.1'},
         {name: 'vinicius', pwd: '01', ip: '127.0.0.1'}
     ],
-    loggedUser: 0,
+    loggedUser: 1,
     clear: function(){
         this.setTerminal('', true);
     },
     whoami: function() {
         this.setTerminal(this.users[this.loggedUser]['name']);
     },
+    sudo: function(params) {
+        console.log(params)
+        if (params[0] === 'su')
+            this.su(["root"]);
+        else
+            this[params[0]](params.slice(params[0]))
+    },
     su: async function(params) {
+        console.log(params.length)
+        console.log(params)
         if (params.length != 1)
             this.setTerminal('terminal: syntax incorrect.');
         else {
@@ -38,14 +47,44 @@ const library = {
                 if (response === this.users[index]['pwd']) {
                     this.loggedUser = index;
                     this.setTerminal('');
+                    index = -1;
                 } else
                     this.setTerminal('terminal: incorrect password.');
             }
         }
     },
-    passwd: async function(params) {
-        this.setTerminal(`Changing password of ${this.users[this.loggedUser]['name']}`);
-        await this.getTerminal('Current password: ');
+    adduser: async function() {
+        if (this.loggedUser !== 0)
+            this.setTerminal('terminal: Just root user can add user.');
+        else {
+            await this.getTerminal('Name: ');
+            let user = {name: response, pwd: '', ip: '127.0.0.1'};
+            if (response === '')
+                this.setTerminal('terminal: Name can not be blank.')
+            else {
+                this.users.forEach((x, i) => {
+                    if (x['name'] === response)
+                        index = i;
+                });
+                if (index !== -1)
+                    this.setTerminal("terminal: This user already exists.");
+                else {
+                    await this.getTerminal('Password: ');
+                    if (response !== '') {
+                        user['pwd'] = response;
+                        console.log(user);
+                        this.users.push(user)
+                        console.log(this.users)
+                    this.setTerminal('');
+                    } else {
+                        this.setTerminal('terminal: Password can not be blank.')
+                    }
+                }
+            }
+        }
+    },
+    passwd: async function() {
+        await this.getTerminal(`Changing password of ${this.users[this.loggedUser]['name']}\nCurrent password: `);
         if (response === this.users[this.loggedUser]['pwd']) {
             await this.getTerminal('New password: ');
             if (response !== '' && response !== this.users[this.loggedUser]['pwd'])
@@ -57,6 +96,14 @@ const library = {
     echo: function(params) {
         const s = params.join(' ').replace('"', "").replace('"', "");
         this.setTerminal(s);
+    },
+    bc: function(params) {
+        console.log(params)
+        this.setTerminal('');
+    },
+    matriz: async function(params) {
+        console.log("Oi");
+        this.setTerminal('');
     },
     setTerminal: function(response, clean) {
         const terminalTextDefault = `${this.users[this.loggedUser]['name']}@${this.users[this.loggedUser]['ip']}>>`;
@@ -121,7 +168,6 @@ const listenTerminalAvoidMoveCursor = (e) => {
 }
 
 const listenTerminalMain = (e) => {
-
     if (e.key === 'ArrowUp'){
         const lastCommand = lastCommands.pop();
         let index;
